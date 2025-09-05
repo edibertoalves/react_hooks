@@ -11,7 +11,7 @@ export default function UsandoApi() {
   // lista de cidade se houver mais de uma. Usuário digita Mogi das Cruzes e o sistema retorna Mogi das Cruzes - SP e Mogi Guaçu - SP e Mogi Mirim - SP
   const [listaCidades, setListaCidades] = useState([]);
 
-  const fetchTudo = async (municipio) => {
+  const fetchCidade = async (municipio) => {
     setLoading(true);
     setError(null);
     setPrevisao([]);
@@ -39,13 +39,74 @@ export default function UsandoApi() {
         setListaCidades([]);
       }
 
-      const cidadeNodeId = xmlDocId.getElementsByTagName("id")[0];
-      const id = cidadeNodeId?.textContent;
-      if (!id) throw new Error("Cidade não encontrada.");
+      // const cidadeNodeId = xmlDocId.getElementsByTagName("id")[0];
+      // const id = cidadeNodeId?.textContent;
+      // if (!id) throw new Error("Cidade não encontrada.");
+
+      // const previsaoResponse = await axios.get(
+      //   `http://servicos.cptec.inpe.br/XML/cidade/${id}/previsao.xml`
+      // );
+      // const xmlDoc = parser.parseFromString(previsaoResponse.data, "text/xml");
+
+      // const cidadeNode = xmlDoc.getElementsByTagName("nome")[0];
+      // const ufNode = xmlDoc.getElementsByTagName("uf")[0];
+      // setCidadeUF(cidadeNode.textContent + " - " + ufNode.textContent);
+
+      // const previsaoData = Array.from(
+      //   xmlDoc.getElementsByTagName("previsao")
+      // ).map((p) => {
+      //   const code = p.getElementsByTagName("tempo")[0].textContent;
+      //   const mapa = {
+      //     pn: "Parcialmente Nublado 🌤️",
+      //     n: "Nublado ☁",
+      //     c: "Chuvoso 🌧️",
+      //     e: "Ensolarado ☀️",
+      //     i: "Instável 🌩️",
+      //     t: "Tempestuoso ⛈️",
+      //     v: "Vento 💨",
+      //   };
+      //   return {
+      //     dia: p.getElementsByTagName("dia")[0].textContent,
+      //     tempo: mapa[code] || code,
+      //     maxima: p.getElementsByTagName("maxima")[0].textContent,
+      //     minima: p.getElementsByTagName("minima")[0].textContent,
+      //   };
+      // });
+
+      // setPrevisao(previsaoData);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (inputRef.current && inputRef.current.value.trim() === "") {
+      inputRef.current.focus();
+      return;
+    }
+
+    const cidade = inputRef.current.value.trim();
+    if (cidade.length > 0) {
+      fetchCidade(cidade);
+    }
+  };
+
+  const handleClickCidadeSelecionada = async (id) => {
+      const cidadeNodeId = listaCidades.find(cidade => cidade.id === id);
+
+      if (!id) {
+        setError("Cidade não encontrada.");
+        return;
+      }
 
       const previsaoResponse = await axios.get(
-        `http://servicos.cptec.inpe.br/XML/cidade/${id}/previsao.xml`
+        `http://servicos.cptec.inpe.br/XML/cidade/${cidadeNodeId.id}/previsao.xml`
       );
+      const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(previsaoResponse.data, "text/xml");
 
       const cidadeNode = xmlDoc.getElementsByTagName("nome")[0];
@@ -74,26 +135,7 @@ export default function UsandoApi() {
       });
 
       setPrevisao(previsaoData);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (inputRef.current && inputRef.current.value.trim() === "") {
-      inputRef.current.focus();
-      return;
-    }
-
-    const cidade = inputRef.current.value.trim();
-    if (cidade.length > 0) {
-      fetchTudo(cidade);
-    }
-  };
+  }
 
   useEffect(() => {
     listaCidades.forEach((element) => {
@@ -116,8 +158,52 @@ export default function UsandoApi() {
       {loading && <p>Carregando...</p>}
       {error && <p>Erro: {error}</p>}
 
+      {listaCidades.length > 1 && (
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            marginTop: "20px",
+            borderStyle: "solid",
+            borderWidth: "1px",
+          }}
+        >
+          <thead>
+            <tr style={{ borderStyle: "solid", borderWidth: "1px" }}>
+              <th>Cidades Encontradas</th>
+              <th>UF</th>
+            </tr>
+          </thead>
+          <tbody>
+            {listaCidades.map((cidade, index) => (
+              <tr
+                key={listaCidades.id}
+                onMouseDown={() => {
+                  handleClickCidadeSelecionada(cidade.id);
+                  console.log(cidade.id);
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#f0f0f0";
+                  e.currentTarget.style.color = "black";
+                  e.currentTarget.style.cursor = "pointer";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "";
+                  e.currentTarget.style.color = "white";
+                  e.currentTarget.style.cursor = "default";
+                }}
+                style={{ borderStyle: "solid", borderWidth: "1px" }}
+              >
+                <td>{cidade.cidade}</td>
+                <td>{cidade.uf}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
       {cidadeUF && (
-        <>
+        <div>
           <h2>Previsão do Tempo para o Município de {cidadeUF}</h2>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -140,48 +226,7 @@ export default function UsandoApi() {
             </tbody>
           </table>
           <p></p>
-
-          {listaCidades.length > 1 && (
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                marginTop: "20px",
-                borderStyle: "solid",
-                borderWidth: "1px",
-              }}
-            >
-              <thead>
-                <tr style={{ borderStyle: "solid", borderWidth: "1px" }}>
-                  <th>Cidades Encontradas</th>
-                  <th>UF</th>
-                </tr>
-              </thead>
-              <tbody>
-                {listaCidades.map((cidade, index) => (
-                  <tr
-                    key={listaCidades.id}
-                    onMouseDown={() => console.log(cidade.cidade)}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "#f0f0f0";
-                      e.currentTarget.style.color = "black";
-                      e.currentTarget.style.cursor = "pointer";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "";
-                      e.currentTarget.style.color = "white";
-                      e.currentTarget.style.cursor = "default";
-                    }}
-                    style={{ borderStyle: "solid", borderWidth: "1px" }}
-                  >
-                    <td>{cidade.cidade}</td>
-                    <td>{cidade.uf}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </>
+        </div>
       )}
     </div>
   );

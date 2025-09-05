@@ -36,7 +36,11 @@ export default function UsandoApi() {
         }));
         setListaCidades(cidadesAchadas);
       } else {
-        setListaCidades([]);
+        setListaCidades([{
+          cidade: nodes[0].getElementsByTagName("nome")[0].textContent,
+          uf: nodes[0].getElementsByTagName("uf")[0].textContent,
+          id: nodes[0].getElementsByTagName("id")[0].textContent,
+        }]);
       }
 
       // const cidadeNodeId = xmlDocId.getElementsByTagName("id")[0];
@@ -138,9 +142,14 @@ export default function UsandoApi() {
   }
 
   useEffect(() => {
-    listaCidades.forEach((element) => {
-      console.log(element);
-    });
+    if (listaCidades.length == 1){
+      // listaCidades.forEach((element) => {
+      //   console.log(element);
+      // });
+      handleClickCidadeSelecionada(listaCidades[0].id);
+    }
+
+
   }, [listaCidades]);
 
   return (
